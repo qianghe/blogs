@@ -1,9 +1,9 @@
-### Redux源码解析
+## Redux源码解析
 
-#### 前提
+### 前提
 如果你还是不熟Redux的使用姿势，建议先看下[官方文档](https://redux.js.org/introduction/getting-started)。
 
-#### 多言几句
+### 多言几句
 在使用一样工具之前，总是会想到”它“出现的缘由是什么？解决的问题又是什么？工具的优劣势分别是什么，是都能帮助现有项目解决问题？是都会带来衍生问题？...
 
 俗话说：”方法总比困难多“，那就简单速览下Redux吧。
@@ -11,27 +11,28 @@
 说起Redux，不得不提起Facebook团队的另一个框架[Flux](https://facebook.github.io/flux/)。同MVC模型不同的是，Flux提出的数据流处理模型中是没有Controller的，可以把它看作是controlled-view。Flux的工作模型如下：
 
 
-![Flux workflow]()
+![Flux workflow](https://github.com/qianghe/blogs/blob/main/imgs/flux-workflow.png?raw=true)
 
 那既然有了Flux了，为什么还需要Redux？因为Flux其相对的“复杂性”：
 
 * 调试定位困难
    * Flux支持多store，store之间可能存在关联关系，触发依赖action；
    * Flux中的store中注册的dispatch需要支持异步处理（提供了waitFor API），可能存在不可预测的异步结果；
+***
 
-基于以上的原因，有了简化版的Redux（我掐指猜测了一下，这个名字时Reduced Flux的意思吧...）：
+基于以上的原因，有了简化版的Redux（我掐指猜测了一下，这个名字是Reduced Flux的意思吧...）：
 
 * Redux只有一个全局store;
-* Redux通过reducer来构造所有的变更，并且都是纯函数，避免了边际效应；
+* Redux通过reducer处理所有的变更，并且都是纯函数，避免了边际效应；
 
-因为可以说Redux提供的dispatch(action)都是可预测的行为，保障了我们应用的行为边界预测性，便于测试和debug。
+因此可以说Redux提供的dispatch(action)都是可预测的行为，保障了我们应用的行为边界预测性，便于测试和debug。
 
-那任何工具的引入都会存在利弊，这就涉及到在什么场景下我们需要Redux。当然，官方文档都写的很明白了，[查看](https://redux.js.org/tutorials/essentials/part-1-overview-concepts#when-should-i-use-redux)。
+但任何工具的引入都会存在利弊，这就涉及到在什么场景下我们需要Redux。当然，官方文档都写的很明白了，[查看](https://redux.js.org/tutorials/essentials/part-1-overview-concepts#when-should-i-use-redux)。
 
-![When should use redux]()
+![When should use redux](https://github.com/qianghe/blogs/blob/main/imgs/when-shoul-use-redux.png?raw=true)
 
 
-#### 源码
+### 源码
 
 redux的源码很少，因为其功能单一且独立（纯js，独立于框架）。
 可以想一下如果我们要实现一个这样库，需要做哪些工作呢？
