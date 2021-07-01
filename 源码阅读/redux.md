@@ -145,4 +145,38 @@ compose(...funcs: Function[]) {
 通过compose函数组合我们可以获知：上一个插件的next的执行函数其实是下一个插件的 (action) => {}，通过这种方式将任务串联化。
 
 
+applyMiddleware的作用就是通过compose函数构造一条新的dispatch链：
 
+```javascript
+applyMiddleware(...middlewares) {
+  return (createStore) => (reducer, preloadedState) => {
+      // 在appliMiddleware中构造store才能获取到原始的dispatch
+      const store = createStore(reducer, preloadedState)
+      let dispatch = () => {
+        //...error deal
+      }
+      const middlewareAPI = {
+        getState: store.getState,
+        dispatch: (action, ...args) => dispatch(action, ...args)  
+      }
+      // ({ getStage, dispatch })注入
+      const chain = middlewares.map(middleware => middleware(middlewareAPI))
+      // 串联到一起
+      dispatch = compose(...chain)(store.dispatch)
+      return {
+        ...store,
+        dispatch
+      }
+    }
+}
+```
+（理解这一块的更好的方式，是自己写几个middleware，体验一下就能更快的理解了）。
+
+### 总结
+1. redux出现的意义及其使用场景；
+2. redux是函数式编程的体现，其是纯函数；
+3. redux的几个关键：
+   需要管理什么？数据state(通过reducer计算合并) ->
+   需要更新什么？通过dispatch(action)更新数据从而更新视图 ->
+	 如何扩展dispatch为异步？通过redux-thunk等中间件起到加强的作用 ->
+	 如果扩展redux功能？通过middleware插件实现对logger等。
