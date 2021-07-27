@@ -135,7 +135,7 @@ redux提供的dispatch只支持object对象的方式同步修改state的值，�
 
 而将任务关联串行的主要工具函数就是compose:
 
-```javascrit
+```javascript
 compose(...funcs: Function[]) {
   // ...校验
   return funcs.reduce((a, b) => (...args) => a(b(...args)))

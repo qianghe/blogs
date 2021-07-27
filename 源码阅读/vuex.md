@@ -20,7 +20,7 @@ Vuex灵感来自于Flux，它们都是“单根”（而为什么是单根的，
 
 比如我们定义一个store如下：
 
-```
+```javascript
 // root state
 {
     state: () => { return { name: 'xxxx'} },
@@ -55,7 +55,7 @@ Vuex灵感来自于Flux，它们都是“单根”（而为什么是单根的，
 
 1. 对rootState的监听，构造reactive的方式：
 
-```
+```javascript
 // bind store public getters
 store.getters = {}
 // reset local getters cache
@@ -86,7 +86,7 @@ store._vm = new Vue({
 
 1. 对modules构造reactive的方式：
 
-```
+```javascript
   // set state
   if (!isRoot && !hot) {
     const parentState = getNestedState(rootState, path.slice(0, -1))
@@ -112,7 +112,7 @@ store._vm = new Vue({
 
 在installModule处理中，把每个getter都统一到store._wrappedGetters中：
 
-```
+```javascript
 store._wrappedGetters[type] = function wrappedGetter (store) {
     return rawGetter(
       local.state, // local state
@@ -144,7 +144,7 @@ function registerMutation (store, type, handler, local) {
 
 同mutation的处理类似，但是需要考虑action是异步的情况：判断处理的cb是否返回的为Promise：
 
-```
+```javascript
 const entry = store._actions[type] || (store._actions[type] = [])
 entry.push(function wrappedActionHandler (payload) {
   let res = handler.call(store, {
@@ -173,7 +173,7 @@ entry.push(function wrappedActionHandler (payload) {
 
 #### store.commit
 
-```
+```javascript
 this.commit = function boundCommit (type, payload, options) {
   return commit.call(store, type, payload, options)
 }
@@ -181,7 +181,7 @@ this.commit = function boundCommit (type, payload, options) {
 
 通过上面store._mutations的封装，commit方法会通过type获取对应的mutations，在执行mutation后需要需要通知所有的subscribers。
 
-```
+```javascript
 this._subscribers
   .slice() // shallow copy to prevent iterator invalidation if subscriber synchronously calls unsubscribe
   .forEach(sub => sub(mutation, this.state))
