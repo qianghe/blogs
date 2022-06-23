@@ -1,0 +1,125 @@
+---
+layout: post
+title:  "Popup如何追踪子组件渲染时机"
+date:   2022-06-23 13:35:52 +0800
+categories: antd popconfirm react
+---
+
+## 场景
+组件库中，我们回经常使用popup类的各种组件：popconfirm、popover、tooltip等
+
+popup类组件的特征是：用户触发（hover\click...）时展示，且组件自身显隐时会触发自定义的动画。
+
+现在我们需要处理这样的一个场景，一个popconfirm内需要展示接口请求返回的数据，并且根据组件内一些特征状态，在popconfirm展开时需要定位到active的元素位置。
+
+## 思路
+我们用antd的popconfirm进行举例，起内部调用关系如下：
+
+<img src="https://github.com/qianghe/blogs/blob/main/imgs/antd-popconfirm.png?raw=true" />
+
+在Popup组件的实现中，使用CSSMotion对组件的显隐进行动画展示（组件内置）; enter\appear\leave状态均使用了此动画时长。
+
+```css
+.effect() {
+	animation-duration: 0.3s;
+	animation-fill-mode: both;
+}
+```
+
+这为我们拓展了一个思路，是否可以通过监听动画的进度，来获取其content是否被渲染的状态呢？即其popup内部的子组件真正可以被渲染到浏览器上的时机是启动执行enter-active的时机。因此我们可以监听animationStart来获取当前popup组件的classList，如果其包含我们需要的动画class，说明其内部字组件已经渲染到浏览器上了，我们可以对子组件进行需要的业务计算了。
+
+## 解决流程
+为了便于我们直接获取popup的dom进行监听，我们需要明确popconfirm挂载的dom节点。这里，可以使用popconfirm提供的getPopupContainer方法自定义这个挂载容器节点。
+
+1. 自定义挂载容器节点，当popconfirm的弹窗真正被挂载时，进行下一步的事件监听。
+	
+```javascript
+const observer = new MutationObserver((mutationsList) => {
+	for (const mutation of mutationsList) {
+		if (mutation.type === 'childList') {
+			const newNode = mutation.addedNodes[0];
+			const targetNode = getTargetDom(newNode);
+			if (!targetNode) return;
+			// 挂在后进行事件监听
+			unListener = registerAEListenEvent(targetNode);
+		}
+	}
+});
+	// 对容器节点只进行childList属性变化的监听，即监听何时挂载portal组件
+observer.observe(observeDom, {
+	subtree: false,
+	attributes: false,
+	childList: true,
+});
+
+```
+
+2. 监听动画事件，并能根据classList判断当前弹窗的状态，比如：
+
+```javascript
+// 弹窗是否处于visible状态
+const checkAntdTooltipVisibleByClassName = classList => !classList.some(x => x.includes('hidden') || x.includes('leave'));
+
+
+// 弹窗是否处于动画进入状态
+const checkAnimateEnterActive = classList => !classList.some(x => x.includes('enter-active'));
+```
+
+```javascript
+const registerAEListenEvent = ($dom) => {
+	if (!$dom) return;
+
+	const animationStartCb = () => {
+		const classNameList = [...$dom.classList];
+		const isVisible = checkAntdTooltipVisibleByClassName(classNameList);
+		const isEnterAcitve = checkAnimateEnterActive(classNameList);
+
+		if (isEnterAcitve) {
+			// onAnimateStart为用户定义的会调函数
+			onAnimateStart(isVisible);
+		}
+
+	};
+
+	$dom.addEventListener('animationstart', animationStartCb);
+
+	return () => {
+		$dom.removeEventListener('animationstart', animationStartCb);
+	};
+
+};
+```
+
+针对react项目，我们完全可以进行自定义hook的封装。
+
+3. 此时通过对动画的监听，我们已经可以明确子组件已经被渲染的时机了；通过业务需要的需要，进行场景计算，比如滚动到active元素的。
+
+如果js中需要css中设定的常量，可以使用export的方式，js也可以读取css常量了。
+```css
+:export {...}
+```
+```javascript
+const [optionHeight, optionGap, scrollGap] = Object.values(pick(CSSVars, ['optionHeight', 'optionGap', 'scrollGap'], [])).map(x => parseInt(x, 10));
+
+```
+
+```javascript
+
+const getIntoViewScrollTop = () => {
+	const $activeOption = scrollRef.current.el.querySelector(`#${activeAudioOptionId}`);
+	const activeDataId = parseInt($activeOption.dataset?.id, 10);
+	if (!$activeOption || activeDataId <= 9) return 0;
+	...// 需要加计算滚动的scroll距离
+	return scroll;
+};
+
+// scroll to target location
+scrollToTop({
+	endScrollTop: getIntoViewScrollTop(),
+	animation: false,
+});
+```
+
+
+## 总结
+以上，我们分析并描述了：如何通过监听pop类型组件的animationStart方法，以获取起子组件真正渲染到浏览器的时机。
